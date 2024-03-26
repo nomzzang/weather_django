@@ -1,0 +1,67 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+      args:
+        - DEV=true
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    command: >
+      sh -c "python manage.py runserver 0.0.0.0:8000"
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7.2.3
+
+  celery:
+    build:
+      context: .
+    volumes:
+      - .:/app
+    # Note that -B is for development purpose, for production, you need to have seperate process to run the beat
+    # https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html#starting-the-scheduler
+    command: celery -A myproject worker -l INFO
+    # command: celery -A worker worker -l info -P eventlet -c 10
+    # command: ["celery", "-A", "worker", "worker", "-l", "info", "-P", "eventlet", "-c", "10", "-Q", "data_fetch,data_send"]
+    depends_on:
+      - redis
+
+  # celery-1:
+  #   build: .
+  #   volumes:
+  #     - ./weather:/weather
+  #   command: celery -A weather worker -l INFO -Q queue1
+  #   depends_on:
+  #     - redis
+
+  # celery-2:
+  #   build: .
+  #   volumes:
+  #     - ./weather:/weather
+  #   command: celery -A weather worker -l INFO -Q queue2
+  #   depends_on:
+  #     - redis
+
+  celery-beat:
+    build: .
+    command: celery -A myproject beat --loglevel=info
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+
+  flower:
+    image: mher/flower:2.0.1
+    ports:
+      - "5555:5555"
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+    depends_on:
+      - celery
+      - redis
+
