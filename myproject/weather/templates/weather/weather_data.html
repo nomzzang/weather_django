@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Weather Data</title>
+</head>
+<body>
+    <h1>Weather Data</h1>
+    <ul>
+        {% for data in weather_data %}
+        <li>{{ data.city }}: {{ data.temperature }}°C, {{ data.description }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
